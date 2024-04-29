@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/ebitengine/purego"
 )
@@ -73,9 +74,14 @@ func mainWithError() error {
 }
 
 func mustProcstat(libraryName string) {
-	err := procstat()
-	if err != nil {
-		panic(err)
+	switch runtime.GOOS {
+	case "freebsd":
+		err := procstat()
+		if err != nil {
+			panic(err)
+		}
+	default:
+		log.Printf("[warn] cannot get process address space mappings")
 	}
 }
 

@@ -82,42 +82,24 @@ func junk_x86() {
 		log.Panicln("nope")
 	}
 
-	_localVarPtr := unsafe.Pointer(&b)
-
-	log.Printf("main: 0x%x | pc line: %d | main: 0x%x | uncalled: 0x%x",
+	log.Printf("pc: 0x%x | pc line: %d | main: 0x%x | uncalled: 0x%x",
 		pc, line, reflect.ValueOf(main).Pointer(), uncalledPtr)
 
-	localVarPtrBack := unsafe.Pointer(uintptr(_localVarPtr) - 1024)
-
-	// func Float32bits(f float32) uint32 { return *(*uint32)(unsafe.Pointer(&f)) }
-	stackMemory := *(*[2048]byte)(localVarPtrBack)
-
-	memoryPtr := uintptr(localVarPtrBack)
-
+	currentAddress := uintptr(unsafe.Pointer(&b))
 	for i := 0; i < 2048; i += 8 {
-		value := stackMemory[i : i+8]
+		chunk := *(*uintptr)(unsafe.Pointer(currentAddress))
 
-		valueLittle := uintptr(binary.LittleEndian.Uint64(value))
+		fmt.Fprintf(os.Stdout, "0x%x: 0x%x\n", currentAddress, chunk)
 
-		fmt.Fprintf(os.Stdout, "0x%x: 0x%x - 0x%x\n",
-			memoryPtr, value, valueLittle)
-
-		//if valueLittle == 0x4142434445464748 {
-		//	log.Println("TODO")
-		//	binary.LittleEndian.PutUint64(stackMemory[i:], uint64(uncalledPtr))
-		//}
-
-		if isAddressNear(valueLittle, pc) {
-			binary.LittleEndian.PutUint64(stackMemory[i:], uint64(uncalledPtr))
+		if isAddressNear(chunk, pc) {
+			*(*uintptr)(unsafe.Pointer(currentAddress)) = uncalledPtr
 
 			log.Printf("found possible saved rip 0x%x at 0x%x | new value is: 0x%x",
-				valueLittle, memoryPtr, stackMemory[i:i+8])
+				chunk, currentAddress, uncalledPtr)
 		}
 
-		memoryPtr += 8
+		currentAddress += 8
 	}
-
-	//log.Printf("b: 0x%x", b)
 
 	fmt.Scanln()
 }

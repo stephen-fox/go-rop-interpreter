@@ -47,8 +47,6 @@ func mainWithError() error {
 		"",
 		"Path to the rop gadgets file to overwrite the dymmy function with")
 
-	_ = ropGadgetsPath
-
 	flag.Parse()
 
 	var err error

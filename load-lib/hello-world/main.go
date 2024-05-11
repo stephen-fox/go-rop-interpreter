@@ -14,6 +14,14 @@ import (
 	"github.com/ebitengine/purego"
 )
 
+// We apparently need binutils / something it relies on for this to work.
+// New packages to be INSTALLED:
+//        binutils: 2.40_5,1
+//        liblz4: 1.9.4_1,1
+//        zstd: 1.5.6
+//
+// pkg install binutils
+
 func main() {
 	log.SetFlags(0)
 

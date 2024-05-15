@@ -4,9 +4,12 @@ GLOBAL _start
 
 _start:
 [BITS 64]
+ret
+
 ; pointer gadgets
 pop r11
 mov rdi, rsp
+pop r10
 ret
 
 ; push gadgets
@@ -79,6 +82,9 @@ xor rsi, rsi
 ret
 
 xor rdi, rdi
+ret
+
+xor rdx, rdx
 ret
 
 xor rsp, rsp

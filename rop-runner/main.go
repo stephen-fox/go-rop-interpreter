@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"unsafe"
 )
 
@@ -28,10 +29,30 @@ func main() {
 }
 
 func mainWithError() error {
+	forkProcess := flag.Bool(
+		"fork",
+		false,
+		"Create a child process that is a duplicate of current process"+
+			"with a single thread. This is to avoid weird stack behavior seen"+
+			"in multi threaded processes. We think this is due to go's garbage"+
+			"collector.")
+
 	flag.Parse()
 	ropChainPath := flag.Arg(0)
 	if ropChainPath == "" {
 		return errors.New("the first argument must be the path to the ROP chain")
+	}
+
+	if *forkProcess {
+		id, _, _ := syscall.Syscall(syscall.SYS_FORK, 0, 0, 0)
+		switch id {
+		//case -1:
+		//	return errors.New("failed to invoke fork syscall")
+		case 0:
+			// keep going
+		default:
+			return nil
+		}
 	}
 
 	unresolvedRopChain, err := os.ReadFile(ropChainPath)

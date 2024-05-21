@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
@@ -12,8 +11,6 @@ import (
 	"os"
 	"reflect"
 	"runtime"
-	"strconv"
-	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -126,48 +123,20 @@ func RopRegion() {
 }
 
 //go:noinline
-func parseROPChain(unresolvedROPChain []byte) ([]byte, error) {
-	var ropChain []byte
+func parseROPChain(unresolvedROPChain []byte) ([1024]byte, error) {
+	var ropChain [1024]byte
 	firstRetPointer := reflect.ValueOf(RopRegion).Pointer()
-	scanner := bufio.NewScanner(bytes.NewReader(unresolvedROPChain))
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, ";") {
+
+	for i := 0; i < len(unresolvedROPChain); i += 8 {
+		chunk := unresolvedROPChain[i : i+8]
+		if bytes.HasPrefix(chunk, []byte{0xba, 0xbe, 0x69, 0x41, 0x42, 0x43}) {
+			gadgetAddr := binary.BigEndian.Uint64(chunk[4:8]) + uint64(firstRetPointer)
+			binary.LittleEndian.PutUint64(ropChain[i:i+8], gadgetAddr)
 			continue
 		}
 
-		ropType, value, found := strings.Cut(line, ": ")
-		if !found {
-			return nil, fmt.Errorf("separator ':' not found on line: %d", lineNum)
-		}
-
-		value = strings.TrimPrefix(value, "0x")
-		switch ropType {
-		case "g":
-			offset, err := strconv.ParseUint(value, 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse gadget on line: %d - %w", lineNum, err)
-			}
-
-			ropAddress := uint64(firstRetPointer) + offset
-			ropChain = binary.LittleEndian.AppendUint64(ropChain, ropAddress)
-		case "d":
-			data, err := hex.DecodeString(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode data on line: %d - %w", lineNum, err)
-			}
-
-			decodedLen := len(data)
-			temp := make([]byte, decodedLen)
-			for i := range data {
-				temp[decodedLen-1-i] = data[i]
-			}
-			data = temp
-
-			ropChain = append(ropChain, data...)
-		}
+		// TODO: test that copy works with an array
+		copy(ropChain[i:i+8], chunk)
 	}
 
 	return ropChain, nil

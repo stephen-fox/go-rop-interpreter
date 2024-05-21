@@ -1,17 +1,28 @@
+// compiler reads the rop chain file and translates it into a slice of byte to
+// input into rop-runner to execute a rop chain. If a rop gadget is written as
+// string, it checks if this gadget is in the rop gadgets binary and overwrites
+// the string with the address to the gadget.
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"compiler/asm"
+	"encoding/binary"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"golang.org/x/arch/x86/x86asm"
 	"log"
 	"os"
+	"strings"
 )
 
 // rop chain file
 // binary rop gadgets
 func main() {
+	log.SetFlags(0)
+
 	err := mainWithError()
 	if err != nil {
 		log.Fatalf("fatal: %s", err)
@@ -31,18 +42,12 @@ func mainWithError() error {
 
 	flag.Parse()
 
-	ropChain, err := os.ReadFile(*ropChainPath)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %s - %w", *ropChainPath, err)
-	}
-	_ = ropChain
-
 	binaryRopGadgets, err := os.ReadFile(*ropGadgetsPath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %s - %w", *ropGadgetsPath, err)
 	}
 
-	var ropGadgets []ropGadget
+	ropGadgetsMap := make(map[string]ropGadget)
 	var currentRopGadget ropGadget
 	var nextOffset uint64
 
@@ -51,7 +56,7 @@ func mainWithError() error {
 		currentRopGadget.instructions = append(currentRopGadget.instructions, inst)
 
 		if inst.Op == x86asm.RET {
-			ropGadgets = append(ropGadgets, currentRopGadget)
+			ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
 
 			currentRopGadget = ropGadget{
 				offset: nextOffset,
@@ -65,9 +70,17 @@ func mainWithError() error {
 		return fmt.Errorf("failed to decode binary rop gadgets - %w", err)
 	}
 
-	for _, gadget := range ropGadgets {
-		log.Printf("%d - %v", gadget.offset, gadget.instructions)
+	unresolvedRopChain, err := os.ReadFile(*ropChainPath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %s - %w", *ropChainPath, err)
 	}
+
+	ropChain, err := parseROPChainGadgets(unresolvedRopChain, ropGadgetsMap)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("%s", hex.Dump(ropChain))
 
 	return nil
 }
@@ -75,4 +88,64 @@ func mainWithError() error {
 type ropGadget struct {
 	instructions []x86asm.Inst
 	offset       uint64
+}
+
+func (o *ropGadget) String() string {
+	var ropGadgetInstructions string
+	for index, inst := range o.instructions {
+		if index == 0 {
+			ropGadgetInstructions = strings.ToLower(inst.String())
+		} else {
+			ropGadgetInstructions += "; " + strings.ToLower(inst.String())
+		}
+	}
+
+	return ropGadgetInstructions
+}
+
+func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ropGadget) ([]byte, error) {
+	var ropChain []byte
+	scanner := bufio.NewScanner(bytes.NewReader(unresolvedROPChain))
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, ";") {
+			continue
+		}
+
+		ropType, value, found := strings.Cut(line, ": ")
+		if !found {
+			return nil, fmt.Errorf("separator ':' not found")
+		}
+
+		value = strings.TrimPrefix(value, "0x")
+		switch ropType {
+		case "g":
+			// 0xbabe694142430000
+			ropGadget, hasIt := ropGadgetsMap[value]
+			if !hasIt {
+				return nil, fmt.Errorf("line %d: failed to find rop gadget in rop gadget binary: %q", lineNum, value)
+			}
+
+			ropOffset := ropGadget.offset | 0xbabe694142430000
+			ropChain = binary.BigEndian.AppendUint64(ropChain, ropOffset)
+		case "d":
+			data, err := hex.DecodeString(value)
+			if err != nil {
+				return nil, fmt.Errorf("line %d: failed to decode data - %w", lineNum, err)
+			}
+
+			decodedLen := len(data)
+			temp := make([]byte, decodedLen)
+			for i := range data {
+				temp[decodedLen-1-i] = data[i]
+			}
+			data = temp
+
+			ropChain = append(ropChain, data...)
+		}
+	}
+
+	return ropChain, nil
 }

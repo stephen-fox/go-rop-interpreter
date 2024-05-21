@@ -1,12 +1,7 @@
-; pop rax; ret
-g: 23
+g: pop rax; ret
 d: 0x000000000000003b
-; mov rdi, rsp; pop r10; ret
-g: 3
+g: pop r11; mov rdi, rsp; pop r10; ret
 d: 0x0068732F6E69622F
-; xor rsi, rsi; ret
-g: 62
-; xor rdx, rdx; ret
-g: 70
-; syscall; ret
-g: 85
+g: xor rsi, rsi; ret
+g: xor rdx, rdx; ret
+g: syscall; ret

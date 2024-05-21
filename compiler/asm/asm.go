@@ -186,5 +186,5 @@ func DecodeARM(rawInstructions []byte, onDecodeFn func(inst armasm.Inst, index i
 }
 
 func isDone(rawInstructions []byte, index int) bool {
-	return index >= len(rawInstructions)-1
+	return index > len(rawInstructions)-1
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -62,21 +61,7 @@ func mainWithError() error {
 		return err
 	}
 
-	_, err = os.Stdout.WriteString(hex.Dump(ropChain))
-	if err != nil {
-		return fmt.Errorf("failed to write hex dump string to stdout - %w", err)
-	}
-
-	if len(ropChain) > 1024 {
-		return errors.New("rop chain too lorge")
-	}
-
-	var b [1024]byte
-	for i := 0; i < len(ropChain); i++ {
-		b[i] = ropChain[i]
-	}
-
-	junk_x86(b)
+	junk_x86(ropChain)
 	return nil
 }
 
@@ -130,12 +115,11 @@ func parseROPChain(unresolvedROPChain []byte) ([1024]byte, error) {
 	for i := 0; i < len(unresolvedROPChain); i += 8 {
 		chunk := unresolvedROPChain[i : i+8]
 		if bytes.HasPrefix(chunk, []byte{0xba, 0xbe, 0x69, 0x41, 0x42, 0x43}) {
-			gadgetAddr := binary.BigEndian.Uint64(chunk[4:8]) + uint64(firstRetPointer)
+			gadgetAddr := uint64(binary.BigEndian.Uint16(chunk[6:8])) + uint64(firstRetPointer)
 			binary.LittleEndian.PutUint64(ropChain[i:i+8], gadgetAddr)
 			continue
 		}
 
-		// TODO: test that copy works with an array
 		copy(ropChain[i:i+8], chunk)
 	}
 

@@ -1,6 +1,6 @@
 g: pop rax; ret
 d: 0x000000000000003b
-g: pop r11; mov rdi, rsp; pop r10; ret
+g: mov rdi, rsp; pop r10; ret
 d: 0x0068732F6E69622F
 g: xor rsi, rsi; ret
 g: xor rdx, rdx; ret

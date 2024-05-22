@@ -92,8 +92,6 @@ func mainWithError() error {
 
 	log.Printf("size: %d | location: 0x%x", sym.Size, sym.Location)
 
-	log.Printf("TODO: rop gadget size: %d", len(ropGadgets))
-
 	if len(ropGadgets) > int(sym.Size) {
 		return fmt.Errorf("rop gadgets size must be %d bytes to overwrite function",
 			sym.Size)
@@ -103,7 +101,6 @@ func mainWithError() error {
 		// pad the end with NOPs
 		ropGadgets = append(ropGadgets, 0x90)
 	}
-	log.Printf("TODO: rop gadget size: %d", len(ropGadgets))
 
 	_, err = f.Seek(0, io.SeekStart)
 	if err != nil {

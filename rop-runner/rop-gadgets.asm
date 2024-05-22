@@ -7,7 +7,6 @@ _start:
 ret
 
 ; pointer gadgets
-pop r11
 mov rdi, rsp
 pop r10
 ret

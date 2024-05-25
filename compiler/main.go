@@ -15,6 +15,7 @@ import (
 	"golang.org/x/arch/x86/x86asm"
 	"log"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -40,6 +41,12 @@ func mainWithError() error {
 		"",
 		"Path to the rop gadgets binary file (the nasm output file)")
 
+	writeROPGadgets := flag.Bool(
+		"write-gadgets",
+		false,
+		"Write gadgets to standard out")
+
+	flag.Usage = func() {}
 	flag.Parse()
 
 	binaryRopGadgets, err := os.ReadFile(*ropGadgetsPath)
@@ -55,10 +62,29 @@ func mainWithError() error {
 		nextOffset += uint64(inst.Len)
 		currentRopGadget.instructions = append(currentRopGadget.instructions, inst)
 
+		//ret
+		//
+		//mov rdi, rsp
+		//pop r10
+		//ret
+
 		if inst.Op == x86asm.RET {
-			ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
+			var previousOffset uint64 = currentRopGadget.offset
+			var previousInstSize uint64
+
+			// ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
+			for i := 0; i < len(currentRopGadget.instructions); i++ {
+				currentRopGadget.instructions = currentRopGadget.instructions[i:]
+				currentRopGadget.offset = previousOffset + previousInstSize
+
+				ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
+
+				previousOffset = currentRopGadget.offset
+				previousInstSize = uint64(currentRopGadget.instructions[0].Len)
+			}
 
 			currentRopGadget = ropGadget{
+				// TODO: nextOffset can get replaced by previousOffset + previousInstSize
 				offset: nextOffset,
 			}
 
@@ -68,6 +94,23 @@ func mainWithError() error {
 
 	if err != nil {
 		return fmt.Errorf("failed to decode binary rop gadgets - %w", err)
+	}
+
+	if *writeROPGadgets {
+		var gadgetList []ropGadget
+		for _, ropGadget := range ropGadgetsMap {
+			gadgetList = append(gadgetList, ropGadget)
+		}
+
+		sort.SliceStable(gadgetList, func(i, j int) bool {
+			return gadgetList[i].offset < gadgetList[j].offset
+		})
+
+		for _, gadget := range gadgetList {
+			fmt.Printf("offset: %d, gadget: %s\n", gadget.offset, gadget.String())
+		}
+
+		return nil
 	}
 
 	unresolvedRopChain, err := os.ReadFile(*ropChainPath)

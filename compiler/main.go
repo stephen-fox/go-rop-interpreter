@@ -19,8 +19,6 @@ import (
 	"strings"
 )
 
-// rop chain file
-// binary rop gadgets
 func main() {
 	log.SetFlags(0)
 
@@ -55,35 +53,30 @@ func mainWithError() error {
 	}
 
 	ropGadgetsMap := make(map[string]ropGadget)
-	var currentRopGadget ropGadget
+	var parentGadget ropGadget
 	var nextOffset uint64
 
 	err = asm.DecodeX86(binaryRopGadgets, 64, func(inst x86asm.Inst, index int) {
 		nextOffset += uint64(inst.Len)
-		currentRopGadget.instructions = append(currentRopGadget.instructions, inst)
-
-		//ret
-		//
-		//mov rdi, rsp
-		//pop r10
-		//ret
+		parentGadget.instructions = append(parentGadget.instructions, inst)
 
 		if inst.Op == x86asm.RET {
-			var previousOffset uint64 = currentRopGadget.offset
+			var previousOffset uint64 = parentGadget.offset
 			var previousInstSize uint64
 
-			// ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
-			for i := 0; i < len(currentRopGadget.instructions); i++ {
-				currentRopGadget.instructions = currentRopGadget.instructions[i:]
-				currentRopGadget.offset = previousOffset + previousInstSize
+			for i := 0; i < len(parentGadget.instructions); i++ {
+				childGadget := ropGadget{
+					instructions: parentGadget.instructions[i:],
+					offset:       previousOffset + previousInstSize,
+				}
 
-				ropGadgetsMap[currentRopGadget.String()] = currentRopGadget
+				ropGadgetsMap[childGadget.String()] = childGadget
 
-				previousOffset = currentRopGadget.offset
-				previousInstSize = uint64(currentRopGadget.instructions[0].Len)
+				previousOffset = childGadget.offset
+				previousInstSize = uint64(parentGadget.instructions[i].Len)
 			}
 
-			currentRopGadget = ropGadget{
+			parentGadget = ropGadget{
 				// TODO: nextOffset can get replaced by previousOffset + previousInstSize
 				offset: nextOffset,
 			}

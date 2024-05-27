@@ -11,6 +11,14 @@ mov rdi, rsp
 pop r10
 ret
 
+mov rsi, rsp
+pop r10
+ret
+
+; copy gadgets
+mov rdi, rax
+ret
+
 ; push gadgets
 push rax
 ret
@@ -53,9 +61,6 @@ pop rdi
 ret
 
 pop rsp
-ret
-
-pop r10
 ret
 
 pop r8

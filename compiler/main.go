@@ -168,7 +168,11 @@ func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ro
 
 			ropOffset := ropGadget.offset | 0xba6865776dbe0000
 			ropChain = binary.BigEndian.AppendUint64(ropChain, ropOffset)
-		case "d":
+		case "d", "D":
+			if ropType == "d" && len(value) < 16 {
+				value = strings.Repeat("0", 16-len(value)) + value
+			}
+
 			data, err := hex.DecodeString(value)
 			if err != nil {
 				return nil, fmt.Errorf("line %d: failed to decode data - %w", lineNum, err)

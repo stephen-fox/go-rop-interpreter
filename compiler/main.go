@@ -155,7 +155,7 @@ func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ro
 
 		ropType, value, found := strings.Cut(line, ": ")
 		if !found {
-			return nil, fmt.Errorf("separator ':' not found")
+			return nil, fmt.Errorf("line %d: separator ':' not found", lineNum)
 		}
 
 		value = strings.TrimPrefix(value, "0x")

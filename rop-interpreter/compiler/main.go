@@ -7,16 +7,18 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"compiler/asm"
 	"encoding/binary"
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"golang.org/x/arch/x86/x86asm"
 	"log"
 	"os"
 	"sort"
 	"strings"
+
+	"rop-interpreter/internal/asm"
+
+	"golang.org/x/arch/x86/x86asm"
 )
 
 func main() {

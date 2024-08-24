@@ -1,3 +1,5 @@
+// injector injects ROP gadget offets into the specified ELF executable,
+// overwriting the specified "dummy" function.
 package main
 
 import (
@@ -45,7 +47,7 @@ func mainWithError() error {
 	ropGadgetsPath := flag.String(
 		ropGadgetsPathArg,
 		"",
-		"Path to the rop gadgets file to overwrite the dymmy function with")
+		"Path to the rop gadgets file to overwrite the dummy function with")
 
 	flag.Parse()
 

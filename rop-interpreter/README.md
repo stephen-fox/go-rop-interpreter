@@ -4,6 +4,14 @@ This directory contains tools that demonstrate implementing a very primitive
 interpreter using ROP gadgets in Go. @SeungKang helped a ton with this crazy
 idea - thank you :)
 
+In theory, a ROP-based interpreter provides:
+
+- Obfuscation against intent and reverse engineering
+- More control over code at runtime (i.e., possible to clear payloads from
+  memory / avoid leaving behind artifacts)
+- Defense against detection by antivirus / EDR (since we are reusing CPU
+  instructions that already exist in the executable's code segment)
+
 ## How it works
 
 Users first must define a list of ROP gadgets using a tool like `nasm` and

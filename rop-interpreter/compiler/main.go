@@ -86,9 +86,9 @@ func main() {
 
 func mainWithError() error {
 	chainSrcPath := flag.String(
-		"chain",
+		"src",
 		"",
-		"Path to the rop chain source file")
+		"Path to the ROP chain source file")
 
 	availableGadgetsPath := flag.String(
 		"gadgets",
@@ -98,9 +98,7 @@ func mainWithError() error {
 	writeGadgetsStdout := flag.Bool(
 		"write-gadgets",
 		false,
-		"Write ROP gadgets found in the gadgets file to stdout and exit")
-
-	flag.Usage = func() {}
+		"Write ROP gadgets found in the available gadgets file to stdout and exit")
 
 	flag.Parse()
 
@@ -114,8 +112,8 @@ func mainWithError() error {
 	var parentGadget ropGadget
 	var nextOffset uint64
 
-	// Parse binaryRopGadgets and populate ropGadgetsMap with
-	// ROP gadgets (instruction sequences ending in "ret").
+	// Populate the available gadgets map with gadgets found
+	// in the binary gadgets blob.
 	err = asm.DecodeX86(binaryRopGadgets, 64, func(inst x86asm.Inst, index int) {
 		nextOffset += uint64(inst.Len)
 		parentGadget.instructions = append(parentGadget.instructions, inst)

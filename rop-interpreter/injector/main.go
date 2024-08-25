@@ -32,7 +32,7 @@ func mainWithError() error {
 	exePath := flag.String(
 		exePathArg,
 		"",
-		"The executable to parse")
+		"The executable to inject gadgets into (the runner program)")
 
 	exeType := flag.String(
 		exeTypeArg,
@@ -42,12 +42,12 @@ func mainWithError() error {
 	symbolName := flag.String(
 		symbolNameArg,
 		"",
-		"The name of the dummy function to locate")
+		"The name of the dummy function to overwrite")
 
 	ropGadgetsPath := flag.String(
 		ropGadgetsPathArg,
 		"",
-		"Path to the rop gadgets file to overwrite the dummy function with")
+		"Path to the ROP gadgets file to overwrite the dummy function with")
 
 	flag.Parse()
 

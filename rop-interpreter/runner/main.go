@@ -1,4 +1,5 @@
-// rop-runner executes an "unresolved" ROP chain.
+// runner executes an "unresolved ROP chain" produced by the compiler program,
+// effectively acting as an interpreter.
 package main
 
 import (

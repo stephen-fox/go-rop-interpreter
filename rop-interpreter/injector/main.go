@@ -1,4 +1,4 @@
-// injector injects ROP gadget offets into the specified ELF executable,
+// injector injects ROP gadgets into the specified executable,
 // overwriting the specified "dummy" function.
 package main
 

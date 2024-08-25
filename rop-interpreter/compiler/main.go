@@ -114,6 +114,8 @@ func mainWithError() error {
 	var parentGadget ropGadget
 	var nextOffset uint64
 
+	// Parse binaryRopGadgets and populate ropGadgetsMap with
+	// ROP gadgets (instruction sequences ending in "ret").
 	err = asm.DecodeX86(binaryRopGadgets, 64, func(inst x86asm.Inst, index int) {
 		nextOffset += uint64(inst.Len)
 		parentGadget.instructions = append(parentGadget.instructions, inst)
@@ -122,6 +124,26 @@ func mainWithError() error {
 			var parentOffset uint64 = parentGadget.offset
 			var previousInstSize uint64
 
+			// The following code creates multiple gadgets
+			// for instruction sequences that contain more
+			// than one instruction. For example, consider
+			// the following gadget:
+			//
+			//   pop rdi
+			//   pop rsi
+			//   pop rdx
+			//   ret
+			//
+			// While the above example is only one gadget,
+			// it can be logically divided into four gadgets:
+			//
+			//   1. pop rdi; pop rsi; pop rdx; ret
+			//   2. pop rsi; pop rdx; ret
+			//   3. pop rdx; ret
+			//   4. ret
+			//
+			// This allows the compiler to reuse existing ROP
+			// gadgets if they contain a useful instruction.
 			for i := 0; i < len(parentGadget.instructions); i++ {
 				childGadget := ropGadget{
 					instructions: parentGadget.instructions[i:],

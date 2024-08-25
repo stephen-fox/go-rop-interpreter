@@ -1,5 +1,8 @@
-// runner executes an "unresolved ROP chain" produced by the compiler program,
-// effectively acting as an interpreter.
+// runner executes an "unresolved ROP chain" produced by the compiler program.
+//
+// The goal of runner is to act as an interpreter for instructions in form
+// of ROP gadgets. The interpreter is as powerful as the set of ROP gadgets
+// included within it via the injector program.
 package main
 
 import (
@@ -57,8 +60,6 @@ func mainWithError() error {
 	}
 
 	// Read an offset-based ("unresolved") ROP chain from a file.
-	// For more information on the structure of this data, refer
-	// to parseROPChain.
 	//
 	// Note: In the real world, we would read this data over
 	// the network from a client. Here, we are reading from
@@ -74,8 +75,9 @@ func mainWithError() error {
 		return err
 	}
 
-	// Pass execution to the ROP chain by rewriting the saved RIP
-	// to point at the first ROP gadget.
+	// Pass execution to the ROP chain by rewriting the saved
+	// return instruction pointer (saved RIP) to point at the
+	// first ROP gadget.
 	pointSavedRipToRopChain_x86_64(ropChain)
 
 	// We never reach here because we passed execution to the ROP
@@ -164,7 +166,8 @@ func resolveRopChain(unresolvedChain []byte) ([1024]byte, error) {
 			binary.LittleEndian.PutUint64(ropChain[i:i+8], gadgetAddr)
 		} else {
 			// Otherwise, we just copy the chunk "as is"
-			// into the ROP chain.
+			// into the ROP chain. We use this to provide
+			// arguments and other data to the ROP chain.
 			copy(ropChain[i:i+8], chunk)
 		}
 	}

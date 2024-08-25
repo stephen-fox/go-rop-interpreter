@@ -85,30 +85,32 @@ func main() {
 }
 
 func mainWithError() error {
-	ropChainPath := flag.String(
-		"rop-chain",
+	chainSrcPath := flag.String(
+		"chain",
 		"",
-		"Path to the rop chain file")
+		"Path to the rop chain source file")
 
-	ropGadgetsPath := flag.String(
-		"rop-gadgets",
+	availableGadgetsPath := flag.String(
+		"gadgets",
 		"",
-		"Path to the rop gadgets binary file (the nasm output file)")
+		"Path to a binary file containing available ROP gadgets (the nasm output file)")
 
-	writeROPGadgets := flag.Bool(
+	writeGadgetsStdout := flag.Bool(
 		"write-gadgets",
 		false,
-		"Write gadgets to standard out")
+		"Write ROP gadgets found in the gadgets file to stdout and exit")
 
 	flag.Usage = func() {}
+
 	flag.Parse()
 
-	binaryRopGadgets, err := os.ReadFile(*ropGadgetsPath)
+	binaryRopGadgets, err := os.ReadFile(*availableGadgetsPath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %s - %w", *ropGadgetsPath, err)
+		return fmt.Errorf("failed to read available gadgets file %q - %w",
+			*availableGadgetsPath, err)
 	}
 
-	ropGadgetsMap := make(map[string]ropGadget)
+	availableGadgets := make(map[string]ropGadget)
 	var parentGadget ropGadget
 	var nextOffset uint64
 
@@ -117,18 +119,18 @@ func mainWithError() error {
 		parentGadget.instructions = append(parentGadget.instructions, inst)
 
 		if inst.Op == x86asm.RET {
-			var previousOffset uint64 = parentGadget.offset
+			var parentOffset uint64 = parentGadget.offset
 			var previousInstSize uint64
 
 			for i := 0; i < len(parentGadget.instructions); i++ {
 				childGadget := ropGadget{
 					instructions: parentGadget.instructions[i:],
-					offset:       previousOffset + previousInstSize,
+					offset:       parentOffset + previousInstSize,
 				}
 
-				ropGadgetsMap[childGadget.String()] = childGadget
+				availableGadgets[childGadget.String()] = childGadget
 
-				previousOffset = childGadget.offset
+				parentOffset = childGadget.offset
 				previousInstSize = uint64(parentGadget.instructions[i].Len)
 			}
 
@@ -145,9 +147,9 @@ func mainWithError() error {
 		return fmt.Errorf("failed to decode binary rop gadgets - %w", err)
 	}
 
-	if *writeROPGadgets {
+	if *writeGadgetsStdout {
 		var gadgetList []ropGadget
-		for _, ropGadget := range ropGadgetsMap {
+		for _, ropGadget := range availableGadgets {
 			gadgetList = append(gadgetList, ropGadget)
 		}
 
@@ -156,20 +158,22 @@ func mainWithError() error {
 		})
 
 		for _, gadget := range gadgetList {
-			fmt.Printf("offset: %d, gadget: %s\n", gadget.offset, gadget.String())
+			fmt.Printf("offset: %d, gadget: %s\n",
+				gadget.offset, gadget.String())
 		}
 
 		return nil
 	}
 
-	unresolvedRopChain, err := os.ReadFile(*ropChainPath)
+	chainSrc, err := os.ReadFile(*chainSrcPath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %s - %w", *ropChainPath, err)
+		return fmt.Errorf("failed to read rop chain source file %q - %w",
+			*chainSrcPath, err)
 	}
 
-	ropChain, err := parseROPChainGadgets(unresolvedRopChain, ropGadgetsMap)
+	ropChain, err := compileRopChain(chainSrc, availableGadgets)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compile rop chain - %w", err)
 	}
 
 	_, err = os.Stdout.Write(ropChain)
@@ -198,10 +202,17 @@ func (o *ropGadget) String() string {
 	return ropGadgetInstructions
 }
 
-func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ropGadget) ([]byte, error) {
+// compileRopChain takes ROP chain source data, looks up its
+// gadgets in the specified map and produces a binary ROP chain
+// consisting of gadgets and their offsets.
+//
+// The ROP runner / interpreter must lookup the final addresses
+// of the gadgets at runtime due to PIE and ASLR.
+func compileRopChain(chainSrc []byte, availableGadgets map[string]ropGadget) ([]byte, error) {
 	var ropChain []byte
-	scanner := bufio.NewScanner(bytes.NewReader(unresolvedROPChain))
+	scanner := bufio.NewScanner(bytes.NewReader(chainSrc))
 	lineNum := 0
+
 	for scanner.Scan() {
 		lineNum++
 		line := strings.TrimSpace(scanner.Text())
@@ -217,7 +228,7 @@ func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ro
 		value = strings.TrimPrefix(value, "0x")
 		switch ropType {
 		case "g":
-			ropGadget, hasIt := ropGadgetsMap[value]
+			ropGadget, hasIt := availableGadgets[value]
 			if !hasIt {
 				return nil, fmt.Errorf("line %d: failed to find rop gadget in rop gadget binary: %q", lineNum, value)
 			}
@@ -243,6 +254,10 @@ func parseROPChainGadgets(unresolvedROPChain []byte, ropGadgetsMap map[string]ro
 
 			ropChain = append(ropChain, data...)
 		}
+	}
+
+	if scanner.Err() != nil {
+		return nil, scanner.Err()
 	}
 
 	return ropChain, nil

@@ -69,7 +69,7 @@ func mainWithError() error {
 	}
 
 	// Turn the unresolved ROP chain into a real ROP chain.
-	ropChain, err := parseROPChain(unresolvedRopChain)
+	ropChain, err := resolveRopChain(unresolvedRopChain)
 	if err != nil {
 		return err
 	}
@@ -140,19 +140,21 @@ func RopRegion() {
 }
 
 //go:noinline
-func parseROPChain(unresolvedROPChain []byte) ([1024]byte, error) {
-	// We assume that unresolvedROPChain consists of 8-byte chunks
+func resolveRopChain(unresolvedChain []byte) ([1024]byte, error) {
+	// We assume that unresolvedChain consists of 8-byte chunks
 	// of data that are either offsets to ROP gadgets found in
 	// the RopRegion, or arbitray data.
 	//
-	// We assume that the first chunk in the RopRegion is
+	// Note: We assume that the first chunk in the RopRegion is
 	// a "ret" instruction offset.
+	//
+	// Note: The choice of 1024 bytes is completely arbitrary.
 	var ropChain [1024]byte
 
 	firstRetPointer := reflect.ValueOf(RopRegion).Pointer()
 
-	for i := 0; i < len(unresolvedROPChain); i += 8 {
-		chunk := unresolvedROPChain[i : i+8]
+	for i := 0; i < len(unresolvedChain); i += 8 {
+		chunk := unresolvedChain[i : i+8]
 
 		if bytes.HasPrefix(chunk, []byte{0xba, 0x68, 0x65, 0x77, 0x6d, 0xbe}) {
 			// Here, chunk is the offset of a ROP gadget

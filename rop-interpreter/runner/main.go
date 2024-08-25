@@ -55,6 +55,8 @@ func mainWithError() error {
 			// We are the single-threaded child.
 		default:
 			// We are the multi-threaded parent - exit.
+			os.Exit(0)
+
 			return nil
 		}
 	}

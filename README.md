@@ -1,9 +1,9 @@
 # Go-based ROP interpreter
 
-This directory contains tools that demonstrate implementing a very primitive
-interpreter using [ROP gadgets][rop] in Go. It is for educational use only.
-Why Go? Because it is a high-level language that runs just about anywhere
-and is easy to work with.
+This repository contains tooling that demonstrates implementing a very
+primitive interpreter using [ROP gadgets][rop] in Go. It is for educational
+use only. Why Go? Because it is a high-level language that runs just about
+anywhere and is easy to work with.
 
 [@SeungKang][sk] helped a ton with this crazy idea - thank you :)
 

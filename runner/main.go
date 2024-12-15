@@ -1,6 +1,6 @@
 // runner executes an "unresolved ROP chain" produced by the compiler program.
 //
-// The goal of runner is to act as an interpreter for instructions in form
+// The goal of runner is to act as an interpreter for instructions in the form
 // of ROP gadgets. The interpreter is as powerful as the set of ROP gadgets
 // included within it via the injector program.
 package main

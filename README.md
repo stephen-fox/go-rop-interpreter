@@ -1,8 +1,14 @@
-# ROP interpreter
+# Go-based ROP interpreter
 
 This directory contains tools that demonstrate implementing a very primitive
-interpreter using ROP gadgets in Go. @SeungKang helped a ton with this crazy
-idea - thank you :)
+interpreter using [ROP gadgets][rop] in Go. It is for educational use only.
+Why Go? Because it is a high-level language that runs just about anywhere
+and is easy to work with.
+
+[@SeungKang][sk] helped a ton with this crazy idea - thank you :)
+
+[rop]: https://en.wikipedia.org/wiki/Return-oriented_programming
+[sk]: https://github.com/SeungKang
 
 In theory, a ROP-based interpreter provides:
 
@@ -12,12 +18,42 @@ In theory, a ROP-based interpreter provides:
 - Defense against detection by antivirus / EDR (since we are reusing CPU
   instructions that already exist in the executable's code segment)
 
-## How it works
+## Tooling
 
-Users first must define a list of ROP gadgets using a tool like `nasm` and
-compile the assembly to binary. The ROP gadgets are then injected into the
-`runner` program using the `injector` program. The `runner` will act as an
-interpreter, reading a user-defined "unresolved ROP chain" at runtime.
+- [`compiler`](compiler/main.go) - Translates a human-readable ROP chain
+  source file into a binary "unresolved ROP chain". The file format is
+  defined in the compiler source file
+- [`injector`](injector/main.go) - Injects binary ROP gadgets into `runner`
+  (i.e., takes the binary output of `nasm` and overwrites a dummy function
+  in runner)
+- [`runner`](runner/main.go) - Executes an unresolved ROP chain produced
+  by `compiler`
+
+## How it works (tl;dr summary)
+
+1. Generic ROP gadgets are generated using nasm ([an example][example-gadgets])
+2. ROP gadgets are injected into the runner exectuable using `injector`
+3. An "unresolved ROP chain" is defined according to the syntax documented
+   by the `compiler` program ([an example][example-urc])
+4. The unresolved ROP chain is compiled to binary using `compiler`
+5. The `runner` program parses the unresolved ROP chain, looks up the gadgets
+   from the unresolved ROP chain and executes them
+
+[example-gadgets]: examples/rop-gadgets.asm
+[example-urc]: examples/reverse-shell-chain.txt
+
+## How it works (in detail)
+
+Users must first define a list of ROP gadgets using a tool like `nasm` and
+compile the assembly into binary. Each gadget acts as a reusable building
+block for one or more programs. Since ROP gadgets are so generic, they can
+be shared amongst multiple programs.
+
+The ROP gadgets are then injected into the [`runner`](runner/main.go)
+program using the [`injector`](injector/main.go) program. The `runner`
+acts as an interpreter; it parses a user-defined "unresolved ROP chain"
+at runtime. The unresolved ROP chain is generated using a custom file
+syntax fed into the [`compiler`](compiler/main.go).
 
 In the real world, the `runner` would be executed on the target computer.
 A hacker would pass various unresolved ROP chain payloads through an
@@ -44,13 +80,6 @@ g: pop rax; ret
 d: 0x29
 g: syscall; ret
 ```
-
-## Tooling
-
-- `runner` - Executes an unresolved ROP chain produced by `compiler`
-- `injector` - Injects binary ROP gadgets into `runner`
-- `compiler` - Translates a human-readable ROP chain source file into
-  a binary, "unresolved ROP chain"
 
 ## Example
 
